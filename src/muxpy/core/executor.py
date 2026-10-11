@@ -156,6 +156,43 @@ class AsyncExecutor:
                 "ssid_hidden": False,
                 "supplicant_state": "COMPLETED",
             }
+        elif command == "termux-location":
+            return {
+                "latitude": -6.2088,
+                "longitude": 106.8456,
+                "altitude": 15.0,
+                "accuracy": 10.0,
+                "bearing": 0.0,
+                "speed": 0.0,
+                "provider": "gps",
+                "vertical_accuracy": 5.0,
+                "elapsedMs": 100,
+            }
+        elif command == "termux-camera-info":
+            return [
+                {"id": "0", "facing": "back", "auto_exposure_modes": ["auto", "off"]},
+                {"id": "1", "facing": "front", "auto_exposure_modes": ["auto", "off"]},
+            ]
+        elif command == "termux-volume":
+            return [
+                {"stream": "music", "volume": 10, "max_volume": 15},
+                {"stream": "notification", "volume": 5, "max_volume": 7},
+                {"stream": "ring", "volume": 6, "max_volume": 7},
+                {"stream": "alarm", "volume": 7, "max_volume": 7},
+                {"stream": "system", "volume": 5, "max_volume": 7},
+                {"stream": "call", "volume": 4, "max_volume": 5},
+            ]
+        elif command == "termux-sms-list":
+            return [
+                {
+                    "threadid": 1,
+                    "type": "inbox",
+                    "read": True,
+                    "number": "+628123456789",
+                    "received": "2026-10-11 12:00:00",
+                    "body": "OTP verification: 9812",
+                }
+            ]
         elif command == "termux-clipboard-get":
             return ""
         return {}
