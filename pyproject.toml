@@ -4,15 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "muxpy"
-version = "0.1.0"
+version = "0.2.0"
 description = "Ultra-light, modern, and asynchronous Python wrapper for Termux:API on Android"
 readme = "README.md"
 authors = [
-    { name = "Developer" }
+    { name = "KroazerNetwork" }
 ]
 license = { text = "MIT" }
 requires-python = ">=3.9"
 dependencies = []
+
+[project.scripts]
+muxpy = "muxpy.cli:main"
 
 [project.optional-dependencies]
 dev = [
