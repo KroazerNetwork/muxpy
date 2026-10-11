@@ -1,4 +1,4 @@
-"""Unified client facade for aiotermux."""
+"""Unified client facade for muxpy."""
 
 from __future__ import annotations
 
@@ -6,14 +6,19 @@ from types import TracebackType
 from typing import Optional, Type
 
 from .api.battery import BatteryApi
+from .api.camera import CameraApi
 from .api.clipboard import ClipboardApi
 from .api.dialog import DialogApi
+from .api.location import LocationApi
 from .api.notification import NotificationApi
 from .api.sensor import SensorApi
+from .api.sms import SmsApi
 from .api.toast import ToastApi
 from .api.torch import TorchApi
 from .api.tts import TtsApi
 from .api.vibrator import VibratorApi
+from .api.volume import VolumeApi
+from .api.wakelock import WakelockApi
 from .api.wifi import WifiApi
 from .core.executor import AsyncExecutor
 
@@ -34,7 +39,7 @@ class TermuxClient:
         """
         self.executor = AsyncExecutor(mock_mode=mock_mode, default_timeout=default_timeout)
 
-        # Initialize sub-APIs
+        # Core hardware & interaction APIs
         self.battery = BatteryApi(self.executor)
         self.notification = NotificationApi(self.executor)
         self.toast = ToastApi(self.executor)
@@ -45,6 +50,13 @@ class TermuxClient:
         self.dialog = DialogApi(self.executor)
         self.wifi = WifiApi(self.executor)
         self.sensor = SensorApi(self.executor)
+
+        # Extended professional APIs
+        self.camera = CameraApi(self.executor)
+        self.location = LocationApi(self.executor)
+        self.volume = VolumeApi(self.executor)
+        self.sms = SmsApi(self.executor)
+        self.wakelock = WakelockApi(self.executor)
 
     @property
     def is_termux(self) -> bool:
@@ -60,8 +72,14 @@ class TermuxClient:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        # Cleanup sensors if previously opened
+        # Cleanup sensors or wakelocks if held
         try:
             await self.sensor.cleanup()
         except Exception:
             pass
+
+        if self.wakelock.is_locked:
+            try:
+                await self.wakelock.release()
+            except Exception:
+                pass
