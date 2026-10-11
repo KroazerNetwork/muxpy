@@ -7,15 +7,50 @@ name = "muxpy"
 version = "0.2.0"
 description = "Ultra-light, modern, and asynchronous Python wrapper for Termux:API on Android"
 readme = "README.md"
-authors = [
-    { name = "KroazerNetwork" }
-]
 license = { text = "MIT" }
 requires-python = ">=3.9"
+keywords = [
+    "termux",
+    "android",
+    "asyncio",
+    "automation",
+    "mobile",
+    "iot",
+    "edge-computing",
+    "bot",
+    "telegram-bot",
+    "notifications",
+]
+authors = [
+    { name = "KroazerNetwork", email = "owner@kzunique.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Home Automation",
+    "Typing :: Typed",
+]
 dependencies = []
 
 [project.scripts]
 muxpy = "muxpy.cli:main"
+
+[project.urls]
+Homepage       = "https://github.com/KroazerNetwork/muxpy"
+Documentation  = "https://github.com/KroazerNetwork/muxpy#readme"
+Repository     = "https://github.com/KroazerNetwork/muxpy"
+Changelog      = "https://github.com/KroazerNetwork/muxpy/blob/main/CHANGELOG.md"
+"Bug Tracker"  = "https://github.com/KroazerNetwork/muxpy/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -29,3 +64,13 @@ packages = ["src/muxpy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
