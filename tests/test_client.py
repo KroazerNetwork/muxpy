@@ -9,7 +9,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from muxpy import (
     BatteryStatus,
+    CameraInfo,
+    LocationInfo,
+    SmsMessage,
     TermuxClient,
+    VolumeStream,
     WifiConnectionInfo,
 )
 
@@ -108,6 +112,49 @@ class TestMuxpy(unittest.IsolatedAsyncioTestCase):
         state2 = await client.torch.toggle()
         self.assertFalse(state2)
         self.assertFalse(client.torch.is_on)
+
+    async def test_wakelock(self):
+        client = TermuxClient(mock_mode=True)
+        self.assertFalse(client.wakelock.is_locked)
+
+        async with client.wakelock.keep_awake():
+            self.assertTrue(client.wakelock.is_locked)
+
+        self.assertFalse(client.wakelock.is_locked)
+
+    async def test_location_mock(self):
+        client = TermuxClient(mock_mode=True)
+        loc = await client.location.get_location()
+
+        self.assertIsInstance(loc, LocationInfo)
+        self.assertEqual(loc.provider, "gps")
+        self.assertAlmostEqual(loc.latitude, -6.2088)
+        self.assertAlmostEqual(loc.longitude, 106.8456)
+
+    async def test_camera_mock(self):
+        client = TermuxClient(mock_mode=True)
+        cameras = await client.camera.get_cameras()
+
+        self.assertEqual(len(cameras), 2)
+        self.assertIsInstance(cameras[0], CameraInfo)
+        self.assertEqual(cameras[0].facing, "back")
+
+    async def test_volume_mock(self):
+        client = TermuxClient(mock_mode=True)
+        volumes = await client.volume.get_volumes()
+
+        self.assertIn("music", volumes)
+        self.assertIsInstance(volumes["music"], VolumeStream)
+        self.assertEqual(volumes["music"].volume, 10)
+        self.assertGreater(volumes["music"].percentage, 0)
+
+    async def test_sms_mock(self):
+        client = TermuxClient(mock_mode=True)
+        messages = await client.sms.list_messages(limit=1)
+
+        self.assertEqual(len(messages), 1)
+        self.assertIsInstance(messages[0], SmsMessage)
+        self.assertIn("OTP", messages[0].body)
 
 
 if __name__ == "__main__":
