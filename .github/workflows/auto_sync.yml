@@ -1,0 +1,38 @@
+name: Clean Auto-Sync (No Bot Watermark)
+
+on:
+  schedule:
+    # Berjalan otomatis setiap 6 jam (opsional, sesuaikan cron ini)
+    - cron: "0 */6 * * *"
+  workflow_dispatch: # Memungkinkan tombol 'Run workflow' manual di GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          # Menggunakan Personal Access Token (PAT) agar tidak ada badge github-actions[bot]
+          token: ${{ secrets.CUSTOM_GITHUB_TOKEN || github.token }}
+          fetch-depth: 0
+
+      - name: Setup Identity (No Watermark)
+        run: |
+          # Atur identitas commit menggunakan akun Anda
+          git config --global user.name "${{ vars.MY_GIT_NAME || github.actor }}"
+          git config --global user.email "${{ vars.MY_GIT_EMAIL || 'user@users.noreply.github.com' }}"
+
+      - name: Fast-forward Auto Pull / Rebase Sync
+        run: |
+          echo "Memeriksa dan menyelaraskan branch..."
+          git pull --rebase origin main || true
+          
+          # Jika ada perubahan lokal yang perlu di-sync bersih:
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "chore: automated sync update"
+            git push origin main
+          else
+            echo "Semua branch sudah sinkron dan mutakhir."
+          fi
