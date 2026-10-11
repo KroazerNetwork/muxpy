@@ -1,62 +1,80 @@
-# PROJECT OVERVIEW & OBJECTIVES: muxpy
+# PROJECT OVERVIEW & ARCHITECTURE: muxpy ⚡
 
-## 1. Latar Belakang & Masalah
-Termux adalah lingkungan Linux terminal yang sangat populer di Android. Melalui package tambahan `termux-api` dan aplikasi companion Android Termux:API, pengguna dapat mengakses sensor dan fitur hardware Android (baterai, SMS, kamera, senter, getar, notifikasi, dialog interaktif, dll.) langsung dari baris perintah.
+## 1. Latar Belakang & Problem Statement
+Termux adalah lingkungan terminal Linux paling tangguh di Android. Bersama paket tambahan `termux-api` dan aplikasi companion Android, developer memiliki akses ke perangkat keras Android (baterai, kamera, lokasi GPS, audio, senter, getar, notifikasi, dialog interaktif, SMS, dan wakelock).
 
-Namun, dalam ekosistem pemrograman Python di Termux:
-1. **CLI Calling yang Kaku:** Kebanyakan script memanggil `termux-api` menggunakan `os.system()` atau `subprocess.run()` secara synchronous. Hal ini memblokir event loop utama, yang sangat merugikan ketika script terhubung ke library modern berbasis async (seperti `aiogram`, `python-telegram-bot` versi async, Discord bots, FastAPI, atau automated IoT scripts).
-2. **Tidak Ada Tipe Data / Data Parsing:** Perintah bawaan Termux API mengembalikan string JSON mentah. Developer harus menulis parsing manual `json.loads()` berulang kali tanpa perlindungan type hint / autocompletion IDE.
-3. **Ketergantungan Eksekusi di HP Saja (Susah Debugging):** Menulis script Termux di laptop/PC sering kali error karena binary `termux-battery-status` dsb. tidak ada di PC. Pengembang membutuhkan mode simulasi / mock agar bisa mengembangkan dan menguji kode di laptop sebelum dideploy ke Android.
+Namun, ekosistem otomasi Python di Termux selama ini menghadapi masalah mendasar:
+1. **Blocking Call Problem:** Mayoritas skrip memanggil `termux-api` menggunakan `subprocess.run()` atau `os.system()` secara synchronous. Ini memblokir event loop utama dan merusak performa bot asynchronous modern (`aiogram`, `python-telegram-bot`, `discord.py`, FastAPI).
+2. **Android Background Process Killing:** Android OS secara agresif membunuh (*force kill*) skrip Python yang berjalan di latar belakang saat layar ponsel mati karena ketiadaan manajemen CPU Wakelock yang benar.
+3. **Ketiadaan Tipe Data:** CLI bawaan Termux hanya me-return string JSON mentah. Developer terpaksa menulis `json.loads()` berulang-ulang tanpa bantuan autocomplete IDE atau type safety.
+4. **Kesulitan Testing di Luar Android:** Menguji kode Termux di komputer lokal (Windows/macOS/Linux) selalu memicu error `command not found` karena tidak adanya binary Android.
 
 ---
 
 ## 2. Visi & Tujuan Project
 
 ### Visi
-Menjadi library Python asynchronous paling ringkas (*ultra-light*), elegan, dan standar untuk berinteraksi dengan API hardware Android di Termux, dengan performa tinggi, kemudahan integrasi bot, dan dukungan *developer experience* (DX) kelas satu.
+Menjadi kerangka kerja Python asynchronous standar, paling ringan (*ultra-light*), aman, dan terpercaya untuk integrasi hardware Android di Termux.
 
-### Tujuan Utama (Core Objectives)
-1. **Asynchronous First:** Dibangun di atas `asyncio` Python untuk eksekusi non-blocking subprocess, siap disandingkan langsung dengan framework bot (Telegram/WhatsApp/Discord) dan web servers.
-2. **Pydantic / Dataclass Typed Models:** Mengonversi respon JSON mentah menjadi objek Python berstruktur lengkap dengan type-hints (autocompletion di IDE/editor).
-3. **Modular Sub-APIs:** Membagi akses perangkat ke dalam modul-modul logis:
-   - `Battery` (status, monitor perubahan daya/persentase)
-   - `Notification` (builder notifikasi, update, cancel)
-   - `Toast` & `Vibrator` & `Torch` (feedback fisik dan visual)
-   - `TTS` (Text-to-Speech)
-   - `Clipboard` (baca & tulis clipboard)
-   - `Dialog` (dialog input, konfirmasi, radio, checkbox Android)
-   - `Wifi` & `Sensors` (status jaringan dan telemetri perangkat)
-4. **Mock / Simulation Engine:** Memiliki runtime yang mampu mendeteksi ketersediaan binary Termux, dengan opsi fallback mock data jika dijalankan di Windows/macOS/Linux biasa untuk mempermudah unit testing.
-5. **Robust Error Handling:** Penanganan timeout eksekusi, penanganan jika aplikasi companion Termux:API belum diinstal atau izin Android belum diberikan.
+### Pilar Utama (Core Pillars)
+1. **Asynchronous First:** Dibangun murni dengan `asyncio.subprocess` non-blocking untuk skalabilitas tinggi.
+2. **Background Daemon Resilience (Wakelock):** Menyediakan mekanisme pengunci daya CPU (`keep_awake`) agar proses background dapat bertahan saat layar mati.
+3. **PEP 561 Type-Safe Models:** Seluruh output dikonversi menjadi `dataclass` berstruktur rapi lengkap dengan autocompletion dan type hint.
+4. **Zero-Dependency Mock Engine:** Mampu mendeteksi sistem operasi host dan menyediakan simulasi data sintetis otomatis untuk pengujian di laptop developer.
+5. **CLI Diagnostics Tooling:** Memudahkan pengguna memeriksa seluruh metrik sistem secara instan melalui terminal (`muxpy info`).
 
 ---
 
-## 3. Target Pengguna
-- **Bot Developers:** Pengembang yang menjalankan bot Telegram/WA di HP bekas untuk smart home, alert server, atau otomasi pribadi.
-- **HomeLab & IoT Enthusiasts:** Pengguna yang memanfaatkan HP Android sebagai sensor node (sensor cahaya, status daya/UPS monitor).
-- **Automation Hackers:** Pengguna yang membuat skrip otomasi sehari-hari (clipboard auto-processor, auto-SMS responder, speech reminder).
+## 3. Arsitektur Teknis
 
----
-
-## 4. Arsitektur Teknis
 ```
 muxpy/
 ├── core/
-│   ├── executor.py       # Asynchronous process runner (asyncio.subprocess)
-│   ├── exceptions.py     # Custom exceptions (TermuxApiNotFoundError, CommandTimeoutError, dll.)
+│   ├── executor.py       # Asynchronous process runner (asyncio.subprocess) & Mock engine
+│   ├── exceptions.py     # Hierarki exception terstandarisasi (TermuxTimeoutError, dll.)
 │   └── models.py         # Base data structures
 ├── api/
-│   ├── battery.py        # Battery status & async event polling
-│   ├── notification.py   # Rich notification builder
-│   ├── toast.py          # Android toast popup
-│   ├── vibrator.py       # Haptic feedback control
-│   ├── torch.py          # Flashlight toggle
-│   ├── tts.py            # Text-to-speech engine
-│   ├── clipboard.py      # System clipboard getter/setter
-│   ├── dialog.py         # Native Android GUI prompt dialogs
-│   ├── wifi.py           # Network status & info
-│   └── sensor.py         # Sensor reading & streams
-├── mock/
-│   └── provider.py       # Synthetic data provider untuk pengujian non-Android
-└── client.py             # Facade utama: TermuxClient
+│   ├── battery.py        # BatteryStatus & async event polling generator
+│   ├── wakelock.py       # CPU Wakelock manager & keep_awake context manager
+│   ├── notification.py   # Fluent NotificationBuilder (actions, sound, priority)
+│   ├── location.py       # LocationInfo GPS & Network coordinate provider
+│   ├── camera.py         # CameraInfo & photo snapshot capture
+│   ├── volume.py         # VolumeStream levels & stream controller
+│   ├── sms.py            # SmsMessage listing & SMS sending
+│   ├── dialog.py         # Android GUI native dialogs (Text, Confirm, Radio, Checkbox)
+│   ├── toast.py          # Android toast notification popup
+│   ├── vibrator.py       # Haptic feedback duration & force vibration
+│   ├── torch.py          # Camera flashlight toggle
+│   ├── tts.py            # Text-To-Speech speech synthesis
+│   ├── clipboard.py      # System clipboard getter & setter
+│   ├── wifi.py           # WifiConnectionInfo network status
+│   └── sensor.py         # Hardware sensors inspector & telemetry reader
+├── cli.py                # Command-Line diagnostic tool (`muxpy info`)
+├── client.py             # Facade utama: TermuxClient
+└── py.typed              # Penanda kepatuhan tipe PEP 561
 ```
+
+---
+
+## 4. Diagram Alur Interaksi Komponen
+
+```mermaid
+graph TD
+    UserApp[Aplikasi Pengguna / Bot] --> Facade[TermuxClient Facade]
+    Facade --> APIs[Sub-APIs: Battery, Wakelock, Location, Camera, Notification, etc.]
+    APIs --> Exec[AsyncExecutor]
+    
+    Exec -->|Lingkungan Android| TermuxCLI[Termux:API CLI Binaries]
+    TermuxCLI --> CompanionApp[Android Termux:API Service]
+    CompanionApp --> AndroidHardware[Android Hardware / OS Sensors]
+    
+    Exec -->|Lingkungan Non-Android / PC| MockEngine[Synthetic Mock Engine]
+    MockEngine --> SimulatedData[Data Hasil Uji Statis]
+```
+
+---
+
+## 5. Standar Kualitas & CI/CD
+* **Matrix Testing:** Otomatis diuji pada Python 3.9, 3.10, 3.11, dan 3.12 via GitHub Actions.
+* **Auto-Sync:** Terintegrasi pipeline sinkronisasi tanpa watermark bot.
+* **Licensing:** Open-Source di bawah lisensi MIT untuk penggunaan komersial maupun personal.
